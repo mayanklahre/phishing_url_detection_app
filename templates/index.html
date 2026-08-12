@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Phishing URL Detector — Demo</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Phishing URL Detector</h1>
+    <form method="post">
+      <label for="url">Enter URL to check</label>
+      <input id="url" name="url" placeholder="https://example.com" value="{{ url|e }}" required>
+      <button type="submit">Check URL</button>
+    </form>
+
+    {% if result %}
+    <div class="result">
+      <h2>Result</h2>
+      <p><strong>Prediction:</strong>
+         {% if result.prediction_label == 1 %}
+            <span class="phish">Phishing (1)</span>
+         {% else %}
+            <span class="legit">Legitimate (0)</span>
+         {% endif %}
+      </p>
+      <p><strong>Score:</strong> {{ result.prediction_score }}</p>
+      <p><strong>Explanation:</strong> {{ result.explanation }}</p>
+    </div>
+    {% endif %}
+
+    <footer>
+      <small>Lightweight demo — replace heuristics with ML model for production.</small>
+    </footer>
+  </div>
+</body>
+</html>

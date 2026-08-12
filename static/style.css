@@ -1,0 +1,10 @@
+body { font-family: Arial, sans-serif; background:#f8fafc; color:#111827; margin:0; padding:20px; }
+.container { max-width:680px; margin:30px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
+h1 { margin-top:0; }
+form { display:flex; gap:8px; margin-bottom:16px; }
+input[type="text"], input { flex:1; padding:10px; border:1px solid #e5e7eb; border-radius:6px; }
+button { padding:10px 16px; border:none; border-radius:6px; cursor:pointer; background:#111827; color:#fff; }
+.result { margin-top:16px; padding:12px; border-radius:6px; background:#f1f5f9; }
+.phish { color:#b91c1c; font-weight:bold; }
+.legit { color:#065f46; font-weight:bold; }
+footer { margin-top:18px; font-size:12px; color:#6b7280; }
