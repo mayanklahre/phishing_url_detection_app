@@ -1,4 +1,4 @@
-# Phishing URL Detection — Minimal App (College Project)
+# Phishing URL Detection 
 
 This is a small, ready-to-open project you can use in VS Code for your college demo.
 It contains:
