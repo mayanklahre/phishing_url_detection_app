@@ -1,0 +1,23 @@
+{
+  "dataset_version": "20260813",
+  "created_at": "2026-08-13T19:20:57.833525+00:00",
+  "record_count": 50000,
+  "class_counts": {
+    "phishing": 25000,
+    "legitimate": 25000
+  },
+  "sha256": "9773487e2650e11b07a99f854619a7dd7a421974b993635e82467b6b9eb41a31",
+  "sources": [
+    {
+      "name": "Phishing.Database active link feed",
+      "url": "https://raw.githubusercontent.com/Phishing-Database/Phishing.Database/master/phishing-links-ACTIVE.txt",
+      "sha256": "be4a179b3ac92b7135595b459c2c9867fe681c12209489dd99517db8407a67c6"
+    },
+    {
+      "name": "Tranco Top 1M",
+      "url": "https://tranco-list.eu/top-1m.csv.zip",
+      "sha256": "3c54ba6c5c569fee50e16127492c0914bf247cb10c68673cb45a6db77250e839"
+    }
+  ],
+  "notes": "Rows are URL labels only. Training extracts lexical features offline; live network enrichment is opt-in at API time."
+}

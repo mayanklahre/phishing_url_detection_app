@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: models/phishing_model.joblib
+      REQUEST_TIMEOUT_SECONDS: "2.0"
+      WHOIS_TIMEOUT_SECONDS: "2.0"

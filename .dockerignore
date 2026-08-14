@@ -1,0 +1,8 @@
+.git
+.github
+.venv
+zenv
+__pycache__
+.pytest_cache
+*.pyc
+reports/training_run.json
