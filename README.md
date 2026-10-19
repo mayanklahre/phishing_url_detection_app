@@ -1,77 +1,65 @@
 # Phishing URL Detection API
 
-A reproducible phishing URL classifier with a FastAPI service, lexical ML scoring, and opt-in live URL enrichment. It is designed to make its limits observable: the classifier is fast because it uses local lexical features, while slow or unavailable network features are returned separately with explicit status information.
+**Solo project | Originally built in 2024; repository published August 2026**
 
-## What is implemented
+## Problem
+A user or integrating application needs a fast, transparent initial risk signal for a URL. A classifier should not be presented as a browser-safety guarantee or the sole basis for an enforcement decision.
 
-- A reproducible 50,000-row URL-label data build from Phishing.Database (phishing) and Tranco (legitimate), with source and output SHA-256 values stored in `data/dataset_manifest.json`.
-- Lexical feature extraction and an offline held-out benchmark of Logistic Regression, linear SVM, and Random Forest. The selected model is persisted as `models/phishing_model.joblib` with `reports/model_metrics.json`.
-- `POST /predict` and `GET /healthz` FastAPI endpoints.
-- Optional SSL/TLS, DNS, WHOIS, and HTTP/HTML enrichment with bounded timeouts, a retry policy, cache, no redirects, and private-network target blocking.
-- Tests, pinned dependencies, Docker health checks, structured JSON logs, and GitHub Actions CI.
+## Who it is for
+Security-aware developers evaluating a research URL-classification API and its optional, constrained network-enrichment capability.
 
-## Security model for live enrichment
+## Goal and success criteria
+Build a reproducible lexical URL classifier with a documented dataset manifest, held-out evaluation, FastAPI endpoint, and optional enrichment that is constrained against obvious SSRF paths.
 
-Feature enrichment can cause the server to contact user-supplied URLs, so it is opt-in (`include_live_features: true`) and deliberately constrained. Before resolving DNS, opening TLS, or making HTTP requests, the service accepts only HTTP(S) URLs on ports 80/443 and rejects credentials, loopback, private, link-local, multicast, reserved, and mixed DNS results. HTTP redirects are disabled; response bodies are capped at 64 KiB; every enrichment source has a strict timeout and errors are surfaced as unavailable rather than converted into a phishing verdict.
+## Scope
+**In:** 50,000-row reproducible data build, lexical feature extraction, model evaluation, FastAPI, optional DNS/TLS/WHOIS/HTML enrichment, SSRF controls, tests, Docker, and CI.
 
-This reduces SSRF risk but should be deployed behind egress filtering and a DNS resolver that protects against DNS rebinding. Never point it at internal networks.
+**Out:** a guarantee that any URL is safe/malicious, automatic blocking, enterprise threat intelligence, and production network security operations.
 
-## Quick start
+## Key decisions
+- Lexical-only prediction is the default for predictable local scoring.
+- Live enrichment is opt-in and independently reported because it depends on outside systems.
+- SHA-256 manifest records the changing data-source snapshot.
+- Hostname-grouped split reduces train/test host leakage.
+- Cache, URL/DNS restrictions, no redirects, response bounds, and timeouts mitigate enrichment risk.
 
+See the [decision log](docs/03-decision-log.md).
+
+## Outcome
+The selected model was evaluated on a hostname-grouped held-out split of **40,196 training** and **9,804 test** rows from a balanced **50,000-URL** dataset. It reached **97.8% F1** and **99.7% ROC-AUC** on that research evaluation. Results are not production validation and should be read with the documented source-selection-bias limitation.
+
+## Risks and mitigations
+Key risks are source bias, host leakage, SSRF, slow/unavailable enrichment, model drift, and over-trust in a score. See [risks](docs/04-risks.md).
+
+## How to run
 Requires Python 3.11+.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt -e .
+    python -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements-dev.txt -e .
+    python scripts/build_dataset.py
+    python scripts/train.py
+    pytest
+    uvicorn app:app --host 0.0.0.0 --port 8000
 
-# Builds a fresh 25k phishing + 25k legitimate URL dataset and version manifest.
-python scripts/build_dataset.py
+For a production-like local container:
 
-# Evaluates all three classifiers on a hostname-grouped held-out test set.
-python scripts/train.py
+    docker compose up --build
 
-pytest
-uvicorn app:app --host 0.0.0.0 --port 8000
-```
+Run a lexical-only benchmark after training:
 
-The interactive API contract is available at `http://localhost:8000/docs`.
+    python scripts/benchmark_api.py --runs 100
 
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H 'content-type: application/json' \
-  -d '{"url":"https://example.com/login","include_live_features":false}'
-```
+## Next steps
+- Record and publish real p50/p95 lexical-only latency from a stated environment.
+- Evaluate against an independently collected, source-balanced dataset.
+- Add authenticated access, rate limits, egress filtering, protected DNS, and monitoring for any deployment.
+- Monitor data/model drift with retained manifests and repeatable evaluation.
 
-Use `docker compose up --build` to run the production-like container. The container expects `models/phishing_model.joblib`, produced by the training command.
-
-## Data and model reproducibility
-
-The dataset build stores a source snapshot manifest (timestamps and SHA-256s) beside the generated CSV. This makes a build auditable even though both upstream feeds change over time. `scripts/train.py` uses a fixed random seed and `GroupShuffleSplit` by hostname, avoiding the common leakage where multiple URLs from one domain appear in both training and test sets.
-
-The two feeds use different collection rules: phishing entries are full reported URLs while Tranco entries are popular domains. This creates source-selection bias, so the baseline deliberately excludes scheme and path-shape fields that perfectly distinguish those sources and marks the report **research-only**. `reports/model_metrics.json` contains precision, recall, F1, ROC-AUC, confusion matrices, feature names, split sizes, leakage warnings, and the model-selection rationale. The default selection rule is highest held-out F1, breaking ties on ROC-AUC. Results will vary as source snapshots change—do not claim a metric without citing the report committed with the model, and do not represent it as production validation until it is evaluated against an independently collected, source-balanced dataset.
-
-## Latency claims
-
-Run the following only after training:
-
-```bash
-python scripts/benchmark_api.py --runs 100
-```
-
-It reports p50 and p95 end-to-end latency for lexical-only predictions. Do not describe live enrichment as sub-second: DNS, TLS, WHOIS, and HTML retrieval rely on external systems and can exceed the configured timeouts. The response includes `latency_ms` so production measurements can be captured in logs.
-
-## Repository layout
-
-```text
-src/phishing_detector/  API, security boundary, features, data builder, training
-scripts/                reproducible data, training, and latency commands
-data/                   labelled URL snapshot and dataset manifest
-models/                 selected serialised model
-reports/                held-out benchmark results
-tests/                  API, feature, and SSRF validation tests
-```
-
-## Responsible use
-
-This project is a decision-support tool, not a browser safety guarantee. A score is probabilistic and must not be the sole basis for blocking, enforcement, or security incident decisions. Treat all downloaded phishing URLs as potentially dangerous data; the pipeline never visits them during dataset build or model training.
+## Documentation
+- [Brief](docs/01-brief.md)
+- [Requirements](docs/02-requirements.md)
+- [Decision log](docs/03-decision-log.md)
+- [Risks](docs/04-risks.md)
+- [Quality and evaluation](docs/05-quality-and-tests.md)
+- [Retrospective](docs/06-retrospective.md)
